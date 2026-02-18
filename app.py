@@ -1,12 +1,15 @@
 import joblib
 import pandas as pd
 import streamlit as st
+from pretrain_ai import classify_review
 from preprocessing import clean_text
 
 st.set_page_config(page_title="Amazon Reviews EDA", layout="wide")
 
 st.sidebar.header("Navigation")
-page = st.sidebar.radio("Go to", ["Dataset Dashboard", "Rating Predictor"])
+page = st.sidebar.radio(
+    "Go to", ["Dataset Dashboard", "Rating Predictor", "AI Review Category"]
+)
 
 
 @st.cache_data
@@ -69,3 +72,19 @@ elif page == "Rating Predictor":
 
         else:
             st.warning("Please enter a review.")
+
+elif page == "AI Review Category":
+
+    st.title("AI Review Category (Zero-Shot Model)")
+
+    user_text = st.text_area("Enter a product review")
+
+    if st.button("Analyze Review"):
+        if user_text.strip() != "":
+            label, score = classify_review(user_text)
+
+            st.success(f"Category: {label}")
+            st.info(f"Confidence: {round(score*100,2)}%")
+
+        else:
+            st.warning("Please enter a review")
