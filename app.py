@@ -3,12 +3,19 @@ import pandas as pd
 import streamlit as st
 from pretrain_ai import classify_review
 from preprocessing import clean_text
+from gemini_api import generate_summary
 
 st.set_page_config(page_title="Amazon Reviews EDA", layout="wide")
 
 st.sidebar.header("Navigation")
 page = st.sidebar.radio(
-    "Go to", ["Dataset Dashboard", "Rating Predictor", "AI Review Category"]
+    "Go to",
+    [
+        "Dataset Dashboard",
+        "Rating Predictor",
+        "AI Review Category",
+        "AI Review Summary",
+    ],
 )
 
 
@@ -88,3 +95,21 @@ elif page == "AI Review Category":
 
         else:
             st.warning("Please enter a review")
+
+elif page == "AI Review Summary":
+
+    st.title("AI Review Summary by Gemini")
+
+    df = load_data()
+
+    products = df["asin"].unique()
+    selected_product = st.selectbox("Choose a product", products)
+
+    product_reviews = df[df["asin"] == selected_product]["reviewText"].dropna().head(20)
+    reviews_text = "\n".join(product_reviews.tolist())
+
+    if st.button("Generate AI Summary"):
+        with st.spinner("Analyzing reviews..."):
+            summary = generate_summary(reviews_text)
+            st.subheader("AI pros and cons summary")
+            st.write(summary)
