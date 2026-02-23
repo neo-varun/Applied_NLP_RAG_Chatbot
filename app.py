@@ -4,6 +4,7 @@ import streamlit as st
 from pretrain_ai import classify_review
 from preprocessing import clean_text
 from gemini_api import generate_summary
+from rag_retriever import search_reviews
 
 st.set_page_config(page_title="Amazon Reviews EDA", layout="wide")
 
@@ -15,6 +16,7 @@ page = st.sidebar.radio(
         "Rating Predictor",
         "AI Review Category",
         "AI Review Summary",
+        "RAG Chatbot",
     ],
 )
 
@@ -113,3 +115,39 @@ elif page == "AI Review Summary":
             summary = generate_summary(reviews_text)
             st.subheader("AI pros and cons summary")
             st.write(summary)
+
+elif page == "RAG Chatbot":
+
+    st.title("Product Review Semantic Search")
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
+
+    user_input = st.chat_input("Ask about product issues or features...")
+
+    if user_input:
+
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        with st.chat_message("user"):
+            st.write(user_input)
+
+        with st.chat_message("assistant"):
+            with st.spinner("Searching reviews..."):
+
+                results = search_reviews(user_input)
+
+                if not results:
+                    answer = "No relevant reviews found"
+
+                else:
+                    answer = ""
+                    for i, doc in enumerate(results, 1):
+                        answer += f"**Result {i}:**\n{doc.page_content}\n\n---\n"
+
+                st.write(answer)
+
+        st.session_state.messages.append({"role": "assistant", "content": answer})
