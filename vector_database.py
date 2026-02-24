@@ -11,5 +11,4 @@ def create_vector_db(chunks):
         documents=chunks, embedding=embedding_model, persist_directory="vector_db"
     )
 
-    vectordb.persist()
-    print("Vector DB created")
+    print(f"Vector DB created with {vectordb._collection.count()} collections")

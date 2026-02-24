@@ -1,6 +1,7 @@
 import pandas as pd
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
+from vector_database import create_vector_db
 
 
 def load_documents():
@@ -20,3 +21,8 @@ def chunk_documents(docs):
     splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=50)
 
     return splitter.split_documents(docs)
+
+
+docs = load_documents()
+chunks = chunk_documents(docs)
+create_vector_db(chunks)

@@ -4,9 +4,9 @@ import streamlit as st
 from pretrain_ai import classify_review
 from preprocessing import clean_text
 from gemini_api import generate_summary
-from rag_retriever import search_reviews
+from rag_chatbot import rag_chatbot
 
-st.set_page_config(page_title="Amazon Reviews EDA", layout="wide")
+st.set_page_config(page_title="Applied NLP RAG Chatbot", layout="wide")
 
 st.sidebar.header("Navigation")
 page = st.sidebar.radio(
@@ -30,7 +30,37 @@ def load_data():
 def load_model():
     model = joblib.load("models/model.pkl")
     vectorizer = joblib.load("models/vectorizer.pkl")
+
     return model, vectorizer
+
+
+@st.cache_resource
+def load_embedding_model():
+    from langchain_community.embeddings import HuggingFaceEmbeddings
+
+    return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+
+@st.cache_resource
+def load_vectordb():
+    from langchain_community.vectorstores import Chroma
+
+    return Chroma(
+        persist_directory="vector_db", embedding_function=load_embedding_model()
+    )
+
+
+@st.cache_resource
+def load_retriever():
+    return load_vectordb().as_retriever(search_kwargs={"k": 5})
+
+
+@st.cache_resource
+def load_gemini():
+    from google import genai
+    import os
+
+    return genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
 if page == "Dataset Dashboard":
@@ -118,7 +148,7 @@ elif page == "AI Review Summary":
 
 elif page == "RAG Chatbot":
 
-    st.title("Product Review Semantic Search")
+    st.title("Product Review Chatbot")
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -127,7 +157,7 @@ elif page == "RAG Chatbot":
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
 
-    user_input = st.chat_input("Ask about product issues or features...")
+    user_input = st.chat_input("Ask about product...")
 
     if user_input:
 
@@ -136,18 +166,8 @@ elif page == "RAG Chatbot":
             st.write(user_input)
 
         with st.chat_message("assistant"):
-            with st.spinner("Searching reviews..."):
-
-                results = search_reviews(user_input)
-
-                if not results:
-                    answer = "No relevant reviews found"
-
-                else:
-                    answer = ""
-                    for i, doc in enumerate(results, 1):
-                        answer += f"**Result {i}:**\n{doc.page_content}\n\n---\n"
-
+            with st.spinner("Thinking..."):
+                answer = rag_chatbot(user_input)
                 st.write(answer)
 
         st.session_state.messages.append({"role": "assistant", "content": answer})
